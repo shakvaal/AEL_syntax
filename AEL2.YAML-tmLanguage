@@ -1,0 +1,366 @@
+# [PackageDev] target_format: plist, ext: tmLanguage
+---
+name: AEL2
+scopeName: source.ael
+fileTypes: [ael]
+uuid: 2bd55ee1-f7cd-47d3-a749-a0f5652d7f3d
+
+patterns:
+- include: '#main'
+
+repository:
+  main:
+    patterns:
+    - include: '#preprocessor'
+    - include: '#comment'
+    - include: '#globals'
+    - include: '#arrow'
+
+    - include: '#keywords'
+    - include: '#label'
+
+    - include: '#context'
+    - include: '#macro'
+    - include: '#macro-call'
+    - include: '#braces'
+    - include: '#any-string'
+    - include: '#parens'
+    - include: '#assignment' # must come before '#extension' to avoid conflicts
+    - include: '#extension'
+
+
+    - include: '#punctuation'
+
+  arrow:
+    match: =>
+    name: comment.line.double-slash.ael
+
+  preprocessor:
+    comment: #include and #exec preprocessing statements
+    name: meta.preprocessor.include.ael
+    match: >-
+      (?x)
+        (\#)(include|exec)
+        \s+
+        (?: ((<).*?(>)) | ((\").*?(\")) | (.*$\n?) )
+    captures:
+      '1': {name: punctuation.definition.preprocessor.ael}
+      '2': {name: keyword.preprocessor.ael}
+      '3': {name: string.quoted.single.ael}
+      '4': {name: punctuation.definition.string.begin.ael}
+      '5': {name: punctuation.definition.string.end.ael}
+      '6': {name: string.quoted.double.ael}
+      '7': {name: punctuation.definition.string.begin.ael}
+      '8': {name: punctuation.definition.string.end.ael}
+      '9': {name: string.unquoted.ael}
+
+  comment:
+    comment: a comment line
+    name: comment.line.double-slash.ael
+    match: \s*(//).*
+    captures:
+      '1': {name: punctuation.definition.comment.ael}
+
+  globals:
+    comment: globals section
+    name: meta.globals.ael keyword.other.globals.ael
+    match: (?<=^|\s)(globals)(?=\s|$)
+
+  context:
+    comment: context section
+    name: meta.context.ael
+    match: (?<=^|\s)(context)(\s+default)?(?=\s|$)
+    captures:
+      '1': {name: keyword.other.context.ael}
+      '2': {name: support.constant.ael}
+
+  macro:
+    comment: macro declaration
+    name: meta.function.ael
+    begin: (?<=^|\s)(macro)\s+([\w\-]+)\s*
+    end: (?<=\))
+    beginCaptures:
+      '1': {name: keyword.other.macro.ael}
+      '2': {name: entity.name.function.macro.ael}
+    patterns:
+    - begin: \(
+      beginCaptures:
+        '0': {name: punctuation.definition.parameters.begin.ael}
+      end: \)
+      endCaptures:
+        '0': {name: punctuation.definition.parameters.end.ael}
+      patterns:
+      - name: variable.parameter.function.ael
+        match: '[_$a-zA-Z\-][$\w]*'
+      - name: punctuation.separator.parameter.function.ael
+        match: ','
+      - include: '#preprocessor'
+      - include: '#comment'
+    - include: '#preprocessor'
+    - include: '#comment'
+
+  macro-call:
+    match: (&)([\w\-]*)(?=\()
+    captures:
+      '1': {name: punctuation.definition.macro.ael}
+      '2': {name: entity.name.function.ael}
+
+  pattern-string-shallow:
+    patterns:
+    - include: '#preprocessor'
+    - include: '#comment'
+    
+    - match: \-
+      name: comment.line.double-slash.ael
+    
+    - include: '#pattern-string-deep'
+
+  pattern-string-deep:
+    patterns:
+    - include: '#preprocessor'
+    - include: '#comment'
+    
+    - begin: \[
+      end: \]
+      captures:
+        '0': {name: constant.character.escape.ael}
+      patterns:
+      - match: .-.
+        name: constant.character.escape.ael
+      - include: '#pattern-string-deep'
+    - match: '[XZN]+'
+      name: constant.character.escape.ael
+    - match: '[\.!]'
+      name: keyword.control.ael
+    - match: '[0-9a-zA-MO-WY\*#_\+]'
+      name: variable.parameter.ael
+
+
+  extension:
+    patterns:
+    - comment: pattern extension
+      name: meta.regexp.ael
+      begin: (?<=^|\s|/)_(\.?)(?!.*=[^>])
+      beginCaptures:
+        '0': {name: comment.line.double-slash.ael}
+        '1': {name: invalid.deprecated.ael}
+      end: (?:(/(?!/))|(=>))
+      endCaptures:
+        '1': {name: comment.line.double-slash.ael}
+        '2': {name: comment.line.double-slash.ael}
+      patterns:
+      - include: '#pattern-string-shallow'
+
+    - comment: special or regular extension
+      match: >-
+        (?x)
+          (?:(s|a|o|t|T|i|e|h)|([\w\-\*#\.\!]+))
+          (?:\s*(=>)|(/(?!/))(?=.*?=>))
+      name: meta.extension.ael
+      captures:
+        '1': {name: constant.character.escape.ael}
+        '2': {name: variable.parameter.ael}
+        '3': {name: comment.line.double-slash.ael}
+        '4': {name: comment.line.double-slash.ael}
+
+  assignment:
+    name: meta.assignment.ael
+    begin: '(\s?)(=)(?!>)( ?)'
+    end: (?=;|\))
+    beginCaptures:
+      '1': {name: invalid.illegal.ael}
+      '2': {name: keyword.operator.ael}
+      '3': {name: invalid.illegal.ael}
+    patterns:
+    - include: '#number'
+    - include: '#operators'
+    - include: '#any-string'
+
+  set-assignment:
+    name: meta.assignment.ael
+    begin: '(\s?)(=)(?!>)( ?)'
+    end: (?=;|\))
+    beginCaptures:
+      '1': {name: invalid.illegal.ael}
+      '2': {name: keyword.operator.ael}
+      '3': {name: invalid.illegal.ael}
+    patterns:
+    - include: '#any-string'
+    - include: '#punctuation'
+
+  any-string:
+    patterns:
+    - include: '#comment'
+    - include: '#preprocessor'
+    - include: '#constants'
+    - include: '#quoted-string'
+    - include: '#expressions'
+    - include: '#variables'
+    - include: '#parens'
+
+  quoted-string:
+    patterns:
+    - begin: (\")
+      beginCaptures:
+        '1': {name: punctuation.definition.string.begin.ael}
+      end: (\")
+      endCaptures:
+        '1': {name: punctuation.definition.string.end.ael}
+      name: string.quoted.double.ael
+      patterns:
+      - include: '#expressions'
+      - include: '#variables'
+
+  expressions:
+    name: meta.expression.ael
+    begin: \$\[
+    beginCaptures:
+      '0': {name: punctuation.definition.string.begin.shell}
+    end: \]
+    endCaptures:
+      '0': {name: punctuation.definition.string.end.shell}
+    patterns:
+    - include: '#number'
+    - include: '#operators'
+    - include: '#any-string'
+
+  variables:
+    name: meta.variable.ael
+    begin: (\$\{)(_{0,2})([\w\-]*)(?=\(|\}|\$|:)
+    beginCaptures:
+      '1': {name: punctuation.definition.variable.ael}
+      '2': {name: invalid.illegal.ael}
+      '3': {name: variable.other.bracket.ael}
+    end: \}
+    endCaptures:
+      '0': {name: punctuation.definition.variable.ael}
+    patterns:
+    - match: (:)(-?\d+)?
+      name: meta.ael
+      captures:
+        '1': {name: keyword.operator.ael}
+        '2': {name: constant.numeric.ael}
+    - include: '#parens'
+    - include: '#quoted-string'
+    - include: '#variables'
+
+  keywords:
+    patterns:
+    - match: '(?<![\w\-])(includes|e?switches)(?![\w\-])'
+      name: keyword.other.ael
+    - match: '(?<![\w\-])(abstract|regexten|local(?=\s.*?=))(?![\w\-])'
+      name: storage.modifier.ael
+    - match: '(?<![\w\-])(default(?=:)|else|goto|jump|switch|return|break|continue)(?![\w\-])'
+      name: keyword.control.ael
+    - begin: '(?<![\w\-])(pattern)(?![\w\-])'
+      end: ':'
+      beginCaptures:
+         '1': {name: keyword.control.ael}
+      patterns:
+       - include: '#pattern-string-shallow'
+    - begin: '(?<![\w\-])(case)(?![\w\-])'
+      end: ':'
+      beginCaptures:
+         '1': {name: keyword.control.ael}
+      # duplicate code below
+      patterns:
+      - comment: special or regular extension
+        match: (?:(s|a|o|t|T|i|e|h)|([\w\-\*#]+))
+        name: meta.extension.ael
+        captures:
+          '1': {name: constant.character.escape.ael}
+          '2': {name: variable.parameter.ael}
+    - begin: '(?<![\w\-])(catch)(?![\w\-])'
+      end: \{
+      beginCaptures:
+         '1': {name: keyword.control.ael}
+      # duplicate code below
+      patterns:
+      - comment: special or regular extension
+        match: (?:(s|a|o|t|T|i|e|h)|([\w\-\*#]+))
+        name: meta.extension.ael
+        captures:
+          '1': {name: constant.character.escape.ael}
+          '2': {name: variable.parameter.ael}
+    - begin: (?<![\w\-])(hint|ifTime)\s*(\()
+      beginCaptures:
+        '1': {name: keyword.control.ael}
+      end: (\))
+      patterns:
+      - include: '#any-string'
+    - begin: (?<![\w\-])(random)\s*(\()
+      beginCaptures:
+        '1': {name: keyword.control.ael}
+      end: (\))
+      patterns:
+      - include: '#number'
+    #  treat for,if,while separately, because they accept expressions (they have hilite enabled for doubles,ints,operators)
+    - begin: (?<![\w\-])(if|for|while)\s*(\()
+      beginCaptures:
+        '1': {name: keyword.control.ael}
+      end: (\))
+      patterns:
+      - include: '#number'
+      - include: '#operators'
+      - include: '#any-string'
+  
+  braces:
+    patterns:
+    - name: meta.group.braces.curly.ael
+      begin: \{
+      beginCaptures:
+        '0': {name: meta.brace.curly.ael}
+      end: \}
+      endCaptures:
+        '0': {name: meta.brace.curly.ael}
+      patterns:
+      - include: $self
+
+  parens:
+    patterns:
+    - name: meta.group.braces.round
+      begin: \(
+      beginCaptures:
+        '0': {name: meta.brace.round.ael}
+      end: \)
+      endCaptures:
+        '0': {name: meta.brace.round.ael}
+      patterns:
+      - include: '#set-assignment'
+      - include: '#any-string'
+      - include: '#punctuation'
+
+  operators:
+    match: (=~|=(?!=)|!|!=|<=|>=|-|\*|\+|/(?!/)|%|<|>|:|\?|\|(?!\|)|&(?!&))
+    name: keyword.operator.ael
+
+  label:
+    match: '([\w\-]+)(?<!default)\:'
+    captures:
+      '1': {name: entity.name.tag.ael}
+
+  number:
+    match: \d+(\.\d+)?
+    name: constant.numeric.ael
+
+  punctuation:
+    patterns:
+    - name: punctuation.terminator.statement.ael
+      match: \;
+
+    - name: meta.delimiter.comma.ael
+      match: ','
+
+  constants:
+    patterns:
+    - comment: Days of week
+      name: support.constant.ael
+      match: \b(mon|tue|wed|thu|fri|sat|sun)\b
+
+    - comment: Months
+      name: support.constant.ael
+      match: \b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b  
+
+    - comment: times
+      match: '\d{1,2}:\d\d'
+      name: support.constant.ael
